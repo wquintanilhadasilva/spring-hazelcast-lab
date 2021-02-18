@@ -4,7 +4,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConditionalOnProperty(value = "nuvem.cache.hazelcast.enabled", matchIfMissing = true)
+@ConditionalOnProperty(value = "nuvem.cache.hazelcast.enabled", matchIfMissing = false)
 public class CacheConfiguration {
 	
 	public CacheConfiguration() {

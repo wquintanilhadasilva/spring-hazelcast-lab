@@ -1,1 +1,4 @@
-
+nuvem:
+  cache:
+    hazelcast:
+      enabled: true
