@@ -8,10 +8,10 @@ import org.springframework.cache.annotation.EnableCaching;
 @SpringBootApplication
 @EnableConfigurationProperties({ })
 @EnableCaching
-public class HazelcastLabApplication {
+public class SardineLabApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(HazelcastLabApplication.class, args);
+		SpringApplication.run(SardineLabApplication.class, args);
 	}
 
 }
