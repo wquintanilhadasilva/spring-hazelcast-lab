@@ -36,10 +36,12 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.SerializableEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HTTP;
+import org.apache.jackrabbit.webdav.client.methods.HttpMkcol;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.apache.tomcat.util.http.fileupload.disk.DiskFileItem;
 import org.springframework.http.HttpHeaders;
@@ -55,63 +57,63 @@ import com.github.sardine.impl.handler.VoidResponseHandler;
 
 @Service
 public class SardineService {
-	
+
 	private final Sardine sardine;
 	private final ApplicationProperties applicationProperties;
-	
-	public SardineService(Sardine sardine, ApplicationProperties applicationProperties){
+
+	public SardineService(Sardine sardine, ApplicationProperties applicationProperties) {
 		this.applicationProperties = applicationProperties;
 		this.sardine = sardine;
-		
+
 	}
-	
+
 	public void criar(String caminho, byte[] arquivo) {
 		try {
-            String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
+			String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
 //            this.sardine.delete("https://webdav.4shared.com/2022");
 //            this.sardine.createDirectory("https://webdav.4shared.com/2023/Teste/Teste/");
-            this.sardine.put(url, arquivo);
-            System.out.println("=====> OK <======");
-        }
-        catch (IOException e) {
-        	e.printStackTrace();
-            throw new IllegalArgumentException("integracao.webdav", e);
-        }
+			this.sardine.put(url, arquivo);
+			System.out.println("=====> OK <======");
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("integracao.webdav", e);
+		}
 	}
-	
+
 	public void criar(String caminho, File file) {
 		try {
-			
+
 			InputStream fis = new FileInputStream(file);
-			
+
 			String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
-			
+
 //			this.sardine.createDirectory(url);
 			Map<String, String> header = new HashMap<>();
 //			header.put("Expect", "100-continue");
-			header.put("Expect", "100-continue"); // [Expect: 100-continue] [Expect: 100-continue, Content-Type: ISO-8859-1]
+			header.put("Expect", "100-continue"); // [Expect: 100-continue] [Expect: 100-continue, Content-Type:
+													// ISO-8859-1]
 			header.put("Content-Type", "ISO-8859-1");
 //			this.sardine.put(url, fis, "application/octet-stream", true, file.length());
 			this.sardine.put(url, fis, header);
-			
-            System.out.println("=====> OK <======");
-        }
-        catch (IOException e) {
-        	e.printStackTrace();
-            throw new IllegalArgumentException("integracao.webdav", e);
-        }
+
+			System.out.println("=====> OK <======");
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("integracao.webdav", e);
+		}
 	}
-	public void criarMyImple(String caminho, File file) {
+
+	public void criarMyImple(String caminho, String fileName, File file) {
 		try {
-			
-			String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
-			
-			Path p = file.toPath();
-            String mimeType = Files.probeContentType(p);
-            
-            FileInputStream is = new FileInputStream(file);
-            byte[] arquivo = is.readAllBytes();
-			
+
+//			String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
+
+//			Path p = file.toPath();
+//			String mimeType = Files.probeContentType(p);
+
+			FileInputStream is = new FileInputStream(file);
+			byte[] arquivo = is.readAllBytes();
+
 //			this.sardine.createDirectory(url);
 			Map<String, String> header = new HashMap<>();
 //			header.put("Expect", "100-continue");
@@ -119,103 +121,128 @@ public class SardineService {
 //			header.put("Content-Type", "ISO-8859-1");
 //			header.put("Content-Type", mimeType);
 //			this.sardine.put(url, fis, "application/octet-stream", true, file.length());
+//			custom.montarDiretorio(caminho, applicationProperties.getUrl());
+
+			MySardineImpl custom = MySardineImpl.instance(applicationProperties.getUserName(),
+					applicationProperties.getPassword());
+			custom.put(caminho, applicationProperties.getUrl(), fileName, arquivo, header);
 			
-			MySardineImpl custom = MySardineImpl.instance(applicationProperties.getUserName(), applicationProperties.getPassword());
-			custom.put(url, arquivo, header);
 			
-            System.out.println("=====> OK <======");
-        }
-        catch (IOException e) {
-        	e.printStackTrace();
-            throw new IllegalArgumentException("integracao.webdav", e);
-        }
+
+//			byte[] particao = new byte[1024 * 100];
+//
+//			long tamanhoTotal = file.length();
+//			int start = 0;
+//			int end = 0;
+//			int cont;
+//
+//			while ((cont = is.read(particao)) != -1) {
+//
+//				end += particao.length;
+//				header.put(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + tamanhoTotal);
+//
+//				custom.put(url, particao, header);
+//
+//				start = end + 1;
+//
+//				System.out.println(MessageFormat.format("Start {0} - end {1} / total {2}", start, end, tamanhoTotal));
+//
+//			}
+
+			System.out.println("=====> OK <======");
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("integracao.webdav", e);
+		}
 	}
+
 //	
 //	
 	public void criarMySplit(String path, byte[] arquivo) {
-		
-        try {
-        	
-        	String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), path);
 
-            int TAMANHO_CHUNK = 1024 * 250;
-            int ultimaPosicao = 0;
-            int tamanhoTotal = arquivo.length;
-            byte[] pedaco;
-            
-            sardine.enablePreemptiveAuthentication(applicationProperties.getUrl());
+		try {
 
+			String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), path);
 
-            for (int i = 0; i < tamanhoTotal; i += TAMANHO_CHUNK) {
-            	HttpHeaders headers = new HttpHeaders();
+			int TAMANHO_CHUNK = 1024 * 250;
+			int ultimaPosicao = 0;
+			int tamanhoTotal = arquivo.length;
+			byte[] pedaco;
+
+			sardine.enablePreemptiveAuthentication(applicationProperties.getUrl());
+
+			for (int i = 0; i < tamanhoTotal; i += TAMANHO_CHUNK) {
+				HttpHeaders headers = new HttpHeaders();
 //            	headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
-            	
-                ultimaPosicao = Math.min(tamanhoTotal - 1, i + TAMANHO_CHUNK);
-                pedaco = Arrays.copyOfRange(arquivo, i, ultimaPosicao);
-                
+
+				ultimaPosicao = Math.min(tamanhoTotal - 1, i + TAMANHO_CHUNK);
+				pedaco = Arrays.copyOfRange(arquivo, i, ultimaPosicao);
+
 //                header.put(HttpHeaders.CONTENT_RANGE, "bytes " + from + "-" + to + "/" + to ) ;
-                headers.put(HttpHeaders.CONTENT_RANGE, Collections.singletonList("bytes " + i + "-" + ultimaPosicao + "/" + tamanhoTotal));
-                
-                sardine.put(url, pedaco);
-            }
-        }
-        catch (IOException e) {
-        	e.printStackTrace();
-        	throw new IllegalArgumentException("integracao.webdav", e);
-        }
-    }
-	
+				headers.put(HttpHeaders.CONTENT_RANGE,
+						Collections.singletonList("bytes " + i + "-" + ultimaPosicao + "/" + tamanhoTotal));
+
+				sardine.put(url, pedaco);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("integracao.webdav", e);
+		}
+	}
+
 	public void criarSplit(String caminho, File file) {
-		
-        try {
-        	
-        	String uriString = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
 
-            Map<String, String> header = new HashMap<>();
+		try {
+
+			String uriString = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
+
+			Map<String, String> header = new HashMap<>();
 //            this.sardine.enablePreemptiveAuthentication(uriString);
-            
-            int from = 0;
-            
-            int SIZE = 10000 ;
-            
-            FileInputStream f = new FileInputStream( file );
-            FileChannel ch = f.getChannel( );
 
-            MappedByteBuffer mappedBuffer = ch.map( MapMode.READ_ONLY, 0L, ch.size( ) );
-            mappedBuffer.position(from);
-            
-            byte[] byteArray ; // = new byte[SIZE];
-            int nGet;
-            int to = from = mappedBuffer.position();
-            int remCnt = 0;
-            
-            
-            this.sardine.enablePreemptiveAuthentication(applicationProperties.getUrl());
-            
-            while( mappedBuffer.hasRemaining( ) )
-            {
-	            nGet = Math.min( mappedBuffer.remaining( ), SIZE );
-	            byteArray = new byte[nGet];
-	            mappedBuffer.get( byteArray, 0, nGet );
-	            to+=nGet;
-	            header.put(HttpHeaders.CONTENT_RANGE, "bytes " + from + "-" + to + "/" + to ) ; // total size is mandatory; works on tomcat local
-	            // header.put(HttpHeaders.CONTENT_TYPE, "application/octet-stream"); // or try thid
-	            // header.put(HttpHeaders.CONTENT_TYPE, "multipart/byteranges"); // or this
-	            // header.put(HttpHeaders.TRANSFER_ENCODING, "chunked"); // doesnot work Transfer-encoding header already present
-	            remCnt = mappedBuffer.remaining()/ SIZE;
-	            sardine.put(uriString, new ByteArrayInputStream(byteArray) , header);
-	            from = to;
-            }
-            ch.close();
-            f.close();
-            
-        }
-        catch (IOException e) {
-        	e.printStackTrace();
-        	throw new IllegalArgumentException("integracao.webdav", e);
-        }
-    }
-	
+			int from = 0;
+
+			int SIZE = 10000;
+
+			FileInputStream f = new FileInputStream(file);
+			FileChannel ch = f.getChannel();
+
+			MappedByteBuffer mappedBuffer = ch.map(MapMode.READ_ONLY, 0L, ch.size());
+			mappedBuffer.position(from);
+
+			byte[] byteArray; // = new byte[SIZE];
+			int nGet;
+			int to = from = mappedBuffer.position();
+			int remCnt = 0;
+
+			this.sardine.enablePreemptiveAuthentication(applicationProperties.getUrl());
+
+			while (mappedBuffer.hasRemaining()) {
+				nGet = Math.min(mappedBuffer.remaining(), SIZE);
+				byteArray = new byte[nGet];
+				mappedBuffer.get(byteArray, 0, nGet);
+				to += nGet;
+				header.put(HttpHeaders.CONTENT_RANGE, "bytes " + from + "-" + to + "/" + to); // total size is
+																								// mandatory; works on
+																								// tomcat local
+				// header.put(HttpHeaders.CONTENT_TYPE, "application/octet-stream"); // or try
+				// thid
+				// header.put(HttpHeaders.CONTENT_TYPE, "multipart/byteranges"); // or this
+				// header.put(HttpHeaders.TRANSFER_ENCODING, "chunked"); // doesnot work
+				// Transfer-encoding header already present
+				remCnt = mappedBuffer.remaining() / SIZE;
+				sardine.put(uriString, new ByteArrayInputStream(byteArray), header);
+				from = to;
+			}
+			ch.close();
+			f.close();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("integracao.webdav", e);
+		}
+	}
+
 //	public void lastTest(String path, byte[] arquivo) {
 //		
 //		try {
@@ -248,96 +275,87 @@ public class SardineService {
 //        	throw new IllegalArgumentException("integracao.webdav", e);
 //        }
 //    }
-	
-	
+
 	public void criarMySplit2(String path, String arquivo) {
 
-		
-        try {
-        	
-        	String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), path);
-        	
-        	File file = new File(arquivo);
-        	FileInputStream fis = new FileInputStream(file);
-        	
-        	int cont;
-        	
-        	byte[] particao = new byte[1024 * 100];
-        	
-        	FileOutputStream saida = new FileOutputStream("/home/basis/Downloads/file-teste.pdf");
-        	
-        	long tamanhoTotal = file.length();
-        	int start = 0;
-        	int end = 0;
-        	
-        	sardine.enablePreemptiveAuthentication(applicationProperties.getUrl());
+		try {
 
-        	                        
-        	while ( ( cont = fis.read( particao ) ) != -1 ) {
-        		
-        	     HttpHeaders headers = new HttpHeaders();
-        	     end += particao.length; 
-                 headers.put(HttpHeaders.CONTENT_RANGE, Collections.singletonList("bytes " + start + "-" + end + "/" + tamanhoTotal));
-                 
-                 sardine.put(url, new ByteArrayInputStream(particao), headers.toSingleValueMap());
-                 
-                 saida.write(particao); 
-                 
-                 start = end + 1;
-                 
-                 System.out.println(MessageFormat.format("Start {0} - end {1} / total {2}", start, end, tamanhoTotal));
-        	     
-        	}
-        	
-        }
-        catch (IOException e) {
-        	e.printStackTrace();
-        	throw new IllegalArgumentException("integracao.webdav", e);
-        }
-    }
-	
+			String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), path);
+
+			File file = new File(arquivo);
+			FileInputStream fis = new FileInputStream(file);
+
+			int cont;
+
+			byte[] particao = new byte[1024 * 100];
+
+			FileOutputStream saida = new FileOutputStream("/home/basis/Downloads/file-teste.pdf");
+
+			long tamanhoTotal = file.length();
+			int start = 0;
+			int end = 0;
+
+			sardine.enablePreemptiveAuthentication(applicationProperties.getUrl());
+
+			while ((cont = fis.read(particao)) != -1) {
+
+				HttpHeaders headers = new HttpHeaders();
+				end += particao.length;
+				headers.put(HttpHeaders.CONTENT_RANGE,
+						Collections.singletonList("bytes " + start + "-" + end + "/" + tamanhoTotal));
+
+				sardine.put(url, new ByteArrayInputStream(particao), headers.toSingleValueMap());
+
+				saida.write(particao);
+
+				start = end + 1;
+
+				System.out.println(MessageFormat.format("Start {0} - end {1} / total {2}", start, end, tamanhoTotal));
+
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("integracao.webdav", e);
+		}
+	}
+
 	public void criarMySplit3(String path, String arquivo) {
 
-		
-        try {
-        	
-        	String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), path);
-        	
-        	File file = new File(arquivo);
-        	FileInputStream fis = new FileInputStream(file);
-        	
-        	SardineImpl s = new SardineImpl(applicationProperties.getUserName(),
-                                                applicationProperties.getPassword());
-        	
-        	RepetableInputStreamEntity repeatable = new RepetableInputStreamEntity(file, 100);
-        	
-        	Path p = file.toPath();
-            String mimeType = "multipart/form-data"; //Files.probeContentType(p);
-        	
-        	s.put(url, repeatable, mimeType, false);
-        	
-        	
-        }
-        catch (IOException e) {
-        	e.printStackTrace();
-        	throw new IllegalArgumentException("integracao.webdav", e);
-        }
-    }
-	
+		try {
+
+			String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), path);
+
+			File file = new File(arquivo);
+			FileInputStream fis = new FileInputStream(file);
+
+			SardineImpl s = new SardineImpl(applicationProperties.getUserName(), applicationProperties.getPassword());
+
+			RepetableInputStreamEntity repeatable = new RepetableInputStreamEntity(file, 100);
+
+			Path p = file.toPath();
+			String mimeType = "multipart/form-data"; // Files.probeContentType(p);
+
+			s.put(url, repeatable, mimeType, false);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("integracao.webdav", e);
+		}
+	}
+
 	public void criarMySplit4(String caminho, String arquivo) {
-        try {
-        	
-            String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
-            
-            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            UsernamePasswordCredentials usernamePasswordCredentials = new UsernamePasswordCredentials(applicationProperties.getUserName(),
-                    applicationProperties.getPassword());
-            
-            credentialsProvider.setCredentials(AuthScope.ANY, usernamePasswordCredentials);
-            
-            HttpClient client = HttpClientBuilder.create()
-                .setDefaultCredentialsProvider(credentialsProvider)
-                .build();
+		try {
+
+			String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
+
+			CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+			UsernamePasswordCredentials usernamePasswordCredentials = new UsernamePasswordCredentials(
+					applicationProperties.getUserName(), applicationProperties.getPassword());
+
+			credentialsProvider.setCredentials(AuthScope.ANY, usernamePasswordCredentials);
+
+			HttpClient client = HttpClientBuilder.create().setDefaultCredentialsProvider(credentialsProvider).build();
 
 //            HttpEntity httpEntity = new ByteArrayEntity(arquivo);
 //            HttpPut httpPut = new HttpPut(url);
@@ -345,250 +363,240 @@ public class SardineService {
 //            httpPut.setEntity(httpEntity);
 //            HttpResponse response = client.execute(httpPut);
 //            log.debug("enviado com sucesso! status code: " + response.getStatusLine().getStatusCode());
-            
-            
-        	
-        	File file = new File(arquivo);
-        	FileInputStream fis = new FileInputStream(file);
-        	
-        	int cont;
-        	
-        	byte[] particao = new byte[1024 * 100];
-        	
+
+			File file = new File(arquivo);
+			FileInputStream fis = new FileInputStream(file);
+
+			int cont;
+
+			byte[] particao = new byte[1024 * 100];
+
 //        	FileOutputStream saida = new FileOutputStream("/home/basis/Downloads/file-teste.pdf");
-        	
-        	long tamanhoTotal = file.length();
-        	int start = 0;
-        	int end = 0;
-            
-            
+
+			long tamanhoTotal = file.length();
+			int start = 0;
+			int end = 0;
+
 //    		while ( ( cont = fis.read( particao ) ) != -1 ) {
-        		
+
 //	       	     end += particao.length; 
-	       	  
+
 //	             HttpEntity httpEntity = new ByteArrayEntity(particao);
-	             HttpEntity httpEntity = new ByteArrayEntity(fis.readAllBytes());
-	             HttpPut httpPut = new HttpPut(url);
+			HttpEntity httpEntity = new ByteArrayEntity(fis.readAllBytes());
+			HttpPut httpPut = new HttpPut(url);
 //	             httpPut.addHeader(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + tamanhoTotal);
-	             httpPut.setEntity(httpEntity);
-	             HttpResponse response = client.execute(httpPut);
-	             
+			httpPut.setEntity(httpEntity);
+			HttpResponse response = client.execute(httpPut);
+
 //	            saida.write(particao); 
-	            
+
 //	            start = end + 1;
-	            
-	            System.out.println(MessageFormat.format("Start {0} - end {1} / total {2}", start, end, tamanhoTotal));
-                
-       	     
+
+			System.out.println(MessageFormat.format("Start {0} - end {1} / total {2}", start, end, tamanhoTotal));
+
 //            }
-            
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-	
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	public void criarMySplit5(String caminho, String arquivo) {
 		try {
-        	
-        	String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
-        	
-        	File file = new File(arquivo);
-        	FileInputStream fis = new FileInputStream(file);
-        	
-        	SardineImpl s = new SardineImpl(applicationProperties.getUserName(),
-                                                applicationProperties.getPassword());
-        	
-        	RepetableInputStreamEntity2 repeatable = new RepetableInputStreamEntity2(fis);
-        	
-        	Path path = file.toPath();
-            String mimeType = "multipart/form-data"; //Files.probeContentType(path);
-        	
-        	s.put(url, repeatable, mimeType ,false);
-        	
-        	
-        }
-        catch (IOException e) {
-        	e.printStackTrace();
-        	throw new IllegalArgumentException("integracao.webdav", e);
-        }
-    }
-	
-	
+
+			String url = MessageFormat.format("{0}/{1}", applicationProperties.getUrl(), caminho);
+
+			File file = new File(arquivo);
+			FileInputStream fis = new FileInputStream(file);
+
+			SardineImpl s = new SardineImpl(applicationProperties.getUserName(), applicationProperties.getPassword());
+
+			RepetableInputStreamEntity2 repeatable = new RepetableInputStreamEntity2(fis);
+
+			Path path = file.toPath();
+			String mimeType = "multipart/form-data"; // Files.probeContentType(path);
+
+			s.put(url, repeatable, mimeType, false);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("integracao.webdav", e);
+		}
+	}
+
 	// https://github.com/lookfirst/sardine/issues/215
-	
+
 //	HttpClientBuilder builder = HttpClientBuilder.create();
-	
+
 //	SardineImpl s = new SardineImpl();
 //	s.put
-	
+
 	class RepetableInputStreamEntity extends AbstractHttpEntity {
-		
+
 		private final File file;
-	    private final InputStream is;
-	    private final int bufferSize;
-	    
-	    private int current;
-	    private List<byte[]> blocks = new LinkedList<>();
-	    
-	    public RepetableInputStreamEntity(File file, int bufferSize) throws IOException {
-	    	this.file = file;
-	    	this.is = new FileInputStream(file);
-	    	this.bufferSize = bufferSize;
-	    	this.current = 0;
-	    	
-	    	this.readBytes();
-	    	
-	    }
+		private final InputStream is;
+		private final int bufferSize;
 
-	    @Override
-	    public boolean isRepeatable() {
-	        return true;
-	    }
+		private int current;
+		private List<byte[]> blocks = new LinkedList<>();
 
-	    @Override
-	    public long getContentLength() {
-	        return file.length();
-	    }
+		public RepetableInputStreamEntity(File file, int bufferSize) throws IOException {
+			this.file = file;
+			this.is = new FileInputStream(file);
+			this.bufferSize = bufferSize;
+			this.current = 0;
 
-	    @Override
-	    public InputStream getContent() throws IOException, UnsupportedOperationException {
-	        return is;
-	    }
+			this.readBytes();
 
-	    @Override
-	    public void writeTo(OutputStream outstream) throws IOException {
-	    	
-	    	if((this.blocks != null && this.blocks.size() > 0) && this.current < this.blocks.size()) {
-	    		byte[] bcurrent = this.blocks.get(this.current);
-	    		outstream.write(bcurrent);
-	    		this.current++;
-	    	}
-	    	
-	    }
+		}
 
-	    @Override
-	    public boolean isStreaming() {
-	        return true;
-	    }
-	    
-	    private void readBytes() throws IOException {
-	    	
-	    	long tamanhoTotal = file.length();
-        	int start = 0;
-        	int end = 0;
-        	int cont;
-        	
-        	byte[] particao = new byte[1024 * this.bufferSize];
-	    	
-	    	while ( ( cont = this.is.read( particao ) ) != -1 ) {
-       	     	end += particao.length; 
-       	     	this.blocks.add(particao);
-                start = end + 1;
-                System.out.println(MessageFormat.format("Start {0} - end {1} / total {2}", start, end, tamanhoTotal));
-	    	}
-	    	
-	    }
-		
+		@Override
+		public boolean isRepeatable() {
+			return true;
+		}
+
+		@Override
+		public long getContentLength() {
+			return file.length();
+		}
+
+		@Override
+		public InputStream getContent() throws IOException, UnsupportedOperationException {
+			return is;
+		}
+
+		@Override
+		public void writeTo(OutputStream outstream) throws IOException {
+
+			if ((this.blocks != null && this.blocks.size() > 0) && this.current < this.blocks.size()) {
+				byte[] bcurrent = this.blocks.get(this.current);
+				outstream.write(bcurrent);
+				this.current++;
+			}
+
+		}
+
+		@Override
+		public boolean isStreaming() {
+			return true;
+		}
+
+		private void readBytes() throws IOException {
+
+			long tamanhoTotal = file.length();
+			int start = 0;
+			int end = 0;
+			int cont;
+
+			byte[] particao = new byte[1024 * this.bufferSize];
+
+			while ((cont = this.is.read(particao)) != -1) {
+				end += particao.length;
+				this.blocks.add(particao);
+				start = end + 1;
+				System.out.println(MessageFormat.format("Start {0} - end {1} / total {2}", start, end, tamanhoTotal));
+			}
+
+		}
+
 	}
 }
 
-
 class RepetableInputStreamEntity2 extends AbstractHttpEntity {
-	
-	final MultipartFile file;//just example which works for me. You can use whatever you want just make sure your entity is repetable and you can create new instance of input stream on each getContent call.
-	
-	RepetableInputStreamEntity2(FileInputStream fis) throws IOException{
+
+	final MultipartFile file;// just example which works for me. You can use whatever you want just make sure
+								// your entity is repetable and you can create new instance of input stream on
+								// each getContent call.
+
+	RepetableInputStreamEntity2(FileInputStream fis) throws IOException {
 		this.file = new MockMultipartFile("filename", fis.readAllBytes());
 	}
 
-    @Override
-    public boolean isRepeatable() {
-        return true;
-    }
+	@Override
+	public boolean isRepeatable() {
+		return true;
+	}
 
-    @Override
-    public long getContentLength() {
-        return file.getSize();
-    }
+	@Override
+	public long getContentLength() {
+		return file.getSize();
+	}
 
-    @Override
-    public InputStream getContent() throws IOException, UnsupportedOperationException {
-        return file.getInputStream();
-    }
+	@Override
+	public InputStream getContent() throws IOException, UnsupportedOperationException {
+		return file.getInputStream();
+	}
 
-    @Override
-    public void writeTo(OutputStream outstream) throws IOException {
-        try (InputStream content = getContent()) {
-            IOUtils.copy(content, outstream);
-        }
-    }
+	@Override
+	public void writeTo(OutputStream outstream) throws IOException {
+		try (InputStream content = getContent()) {
+			IOUtils.copy(content, outstream);
+		}
+	}
 
-    @Override
-    public boolean isStreaming() {
-        return true;
-    }
-	
+	@Override
+	public boolean isStreaming() {
+		return true;
+	}
+
 }
 
-
 class MySardineImpl extends SardineImpl {
-	
+
 	private MySardineImpl(String username, String password) {
 		super(username, password);
 	}
-	
-	public static MySardineImpl instance(String username, String password)
-	{
+
+	public static MySardineImpl instance(String username, String password) {
 		return new MySardineImpl(username, password);
 	}
-	
-	public void put(String url, byte[] data, Map<String, String> headers) throws IOException
-	{
+
+	public void put(String path, String urlBase, String fileName, byte[] data, Map<String, String> headers) throws IOException {
+		String url = MessageFormat.format("{0}/{1}/{2}", urlBase, path, fileName);
 		List<Header> list = new ArrayList<Header>();
-		for (Map.Entry<String, String> h : headers.entrySet())
-		{
+		for (Map.Entry<String, String> h : headers.entrySet()) {
 			list.add(new BasicHeader(h.getKey(), h.getValue()));
 		}
-		
 		ByteArrayEntity entity = new ByteArrayEntity(data);
-		
+		this.createDirectory(path, urlBase);
 		this.put(url, entity, list);
 	}
-	
-//	@Override
-//	public void put(String url, HttpEntity entity, List<Header> headers) throws IOException
-//	{
-//		this.put(url, entity, headers, new VoidResponseHandler());
-//	}
-
 	@Override
-	public <T> T put(String url, HttpEntity entity, List<Header> headers, ResponseHandler<T> handler) throws IOException
-	{
+	public <T> T put(String url, HttpEntity entity, List<Header> headers, ResponseHandler<T> handler) throws IOException {
 		HttpPut put = new HttpPut(url);
 		put.setEntity(entity);
-		for (Header header : headers)
-		{
+		for (Header header : headers) {
 			put.addHeader(header);
 		}
-		try
-		{
+		try {
 			return this.execute(put, handler);
-		}
-		catch (HttpResponseException e)
-		{
-			if (e.getStatusCode() == HttpStatus.SC_EXPECTATION_FAILED)
-			{
+		} catch (HttpResponseException e) {
+			if (e.getStatusCode() == HttpStatus.SC_EXPECTATION_FAILED) {
 				// Retry with the Expect header removed
 				put.removeHeaders(HTTP.EXPECT_DIRECTIVE);
-				if (entity.isRepeatable())
-				{
+				if (entity.isRepeatable()) {
 					return this.execute(put, handler);
 				}
 			}
 			throw e;
 		}
 	}
+	public void createDirectory(String caminho, String url) {
+		
+        StringBuilder urlPortal = new StringBuilder(url);
+        String sourcePath = caminho;
+		if(caminho.substring(0, 1).equals("/")) {
+			sourcePath = caminho.substring(1); // remove a primeira barra
+		}
+		List<String> paths = Arrays.asList(sourcePath.split("/"));
+		for(String part : paths) {
+			urlPortal.append("/").append(part);
+			HttpMkcol httpMkcol = new HttpMkcol(urlPortal.toString());
+			try {
+                client.execute(httpMkcol);
+            } catch (IOException e) {
+            	e.printStackTrace();
+            }
+		}
+    }
 }
-
-

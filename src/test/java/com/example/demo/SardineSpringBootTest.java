@@ -21,7 +21,7 @@ public class SardineSpringBootTest {
 	
 //	private static final String FILE_NAME = "/home/basis/Downloads/tmp/VIO/Vinay-K.-Ingle-John-G.-Proakis-Digital-Signal-Processing-Using-MATLAB-3rd-Edition-Cengage-Learning-2011.pdf";
 	private static final String FILE_NAME = "/home/basis/Downloads/tmp/VIO/teste.txt";
-	private static final String FOLDER_NAME = "2022/Abr/teste3.txt";
+	private static final String FOLDER_NAME = "2022/Abr";
 	
 	@Autowired
 	private SardineService service;
@@ -49,7 +49,7 @@ public class SardineSpringBootTest {
 		
 		File f = new File(FILE_NAME);
 		
-		this.service.criarMyImple(FOLDER_NAME, f);
+		this.service.criarMyImple(FOLDER_NAME, "teste3.txt", f);
 		
 	}
 	
