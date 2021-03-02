@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 public class ApplicationProperties {
 	
 	
-	private String userName = "*****";
-	private String password = "*****";
+	private String userName = "PAM!";
+	private String password = "PAM!";
 	private String url = "https://webdav.4shared.com";
 	
 	public String getUserName() {
