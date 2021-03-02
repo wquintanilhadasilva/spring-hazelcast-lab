@@ -1,4 +1,18 @@
-nuvem:
-  cache:
-    hazelcast:
-      enabled: true
+#nuvem:
+#  cache:
+#    hazelcast:
+#      enabled: true
+#spring:
+#  hazelcast:
+#    group:
+#      name: 'my-app-name'
+#      management-center:
+#        enabled: true
+#        url: 'http://localhost:8080/hazelcast-mancenter'
+#    map:
+#      default:
+#        time-to-live-seconds: 10      
+#    network:
+#      join:
+#        multicast:
+#          enabled: false

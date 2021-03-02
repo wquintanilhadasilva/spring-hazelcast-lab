@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class BookService {
 	
-	@Cacheable("books")
+	@Cacheable("app-cache")
     public String getBookNameByIsbn(String isbn) {
         return findBookInSlowSource(isbn);
     }
